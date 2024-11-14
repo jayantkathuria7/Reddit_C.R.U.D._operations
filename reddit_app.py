@@ -4,15 +4,35 @@ import re
 import os
 import logging
 from dotenv import load_dotenv
-
-# Load environment variables from .env file for credentials
-load_dotenv("reddit_credentials.env")
+from io import StringIO
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Function to initialize the Reddit client using credentials from environment variables
+
+# Function to load environment variables from uploaded file
+def load_credentials_from_file(uploaded_file):
+    if uploaded_file is not None:
+        try:
+            # Read the content of the uploaded file
+            content = uploaded_file.getvalue().decode("utf-8")
+
+            # Use StringIO to simulate a file for dotenv
+            env_data = StringIO(content)
+            load_dotenv(stream=env_data)
+
+            logger.info("Credentials loaded successfully from uploaded file.")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load credentials from file: {e}")
+            st.error("Failed to load credentials. Please upload a valid .env file.")
+            return False
+    else:
+        st.error("No file uploaded. Please upload your credentials.env file.")
+        return False
+
+
 # Function to initialize the Reddit client using credentials from environment variables
 def initialize_reddit():
     client_id = os.getenv("CLIENT_ID")
@@ -25,7 +45,7 @@ def initialize_reddit():
         logger.error("Missing one or more required environment variables.")
         st.error("Missing credentials. Please check your .env file.")
         return None
-    
+
     try:
         reddit = praw.Reddit(
             client_id=client_id,
@@ -121,9 +141,19 @@ def delete_post(reddit, post_url):
 # Streamlit app interface
 st.title("Reddit Bot")
 
-# Initialize Reddit client
-reddit = initialize_reddit()
-if reddit is None:
+uploaded_file = st.file_uploader("Upload your credentials.env file", type=["env"])
+
+# Load the credentials if a file is uploaded
+if uploaded_file:
+    if load_credentials_from_file(uploaded_file):
+        # Initialize Reddit client
+        reddit = initialize_reddit()
+        if reddit is None:
+            st.stop()
+    else:
+        st.stop()
+else:
+    st.warning("Please upload your .env file to proceed.")
     st.stop()
 
 # Tabs for different functionalities

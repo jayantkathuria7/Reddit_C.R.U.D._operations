@@ -1,9 +1,12 @@
 import os
 import praw
+import logging
 import re
-from utils import logger
 
-# Initialize the Reddit client
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Function to initialize the Reddit client using credentials from environment variables
 def initialize_reddit():
     client_id = os.getenv("CLIENT_ID")
     client_secret = os.getenv("CLIENT_SECRET")
@@ -30,7 +33,13 @@ def initialize_reddit():
         logger.error(f"Error initializing Reddit client: {e}")
         return None
 
-# Create a new post
+# Function to extract submission ID from URL
+def extract_submission_id(url):
+    pattern = r'reddit\.com/r/.+/comments/([a-zA-Z0-9]+)'
+    match = re.search(pattern, url)
+    return match.group(1) if match else None
+
+# Function to create a new post
 def create_post(reddit, subreddit_name, title, content):
     try:
         subreddit = reddit.subreddit(subreddit_name)
@@ -41,19 +50,18 @@ def create_post(reddit, subreddit_name, title, content):
         logger.error(f"An error occurred while creating the post: {e}")
         return f"Error: {e}"
 
-# Read user's posts
+# Function to read and display the latest posts from a subreddit
 def read_user_posts(reddit, limit=10):
     try:
-        posts = [
-            (sub.display_name, sub.title, sub.id, sub.score, sub.url)
-            for sub in reddit.user.me().submissions.new(limit=limit)
-        ]
+        posts = []
+        for submission in reddit.user.me().submissions.new(limit=limit):
+            posts.append((submission.subreddit, submission.title, submission.id, submission.score, submission.url))
         return posts
     except Exception as e:
         logger.error(f"An error occurred while reading user posts: {e}")
         return f"Error: {e}"
 
-# Update a post's title and content
+# Function to update a post's title and content with ownership check
 def update_post(reddit, post_url, new_title, new_content):
     submission_id = extract_submission_id(post_url)
     if not submission_id:
@@ -71,7 +79,7 @@ def update_post(reddit, post_url, new_title, new_content):
         logger.error(f"An error occurred while updating the post: {e}")
         return f"Error: {e}"
 
-# Delete a post
+# Function to delete a post with ownership check
 def delete_post(reddit, post_url):
     submission_id = extract_submission_id(post_url)
     if not submission_id:
@@ -88,9 +96,3 @@ def delete_post(reddit, post_url):
     except Exception as e:
         logger.error(f"An error occurred while deleting the post: {e}")
         return f"Error: {e}"
-
-# Extract submission ID from URL
-def extract_submission_id(url):
-    pattern = r'reddit\.com/r/.+/comments/([a-zA-Z0-9]+)'
-    match = re.search(pattern, url)
-    return match.group(1) if match else None

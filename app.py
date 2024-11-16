@@ -1,16 +1,23 @@
 import streamlit as st
-from reddit_crud import create_post, read_user_posts, update_post, delete_post, initialize_reddit
+from reddit_crud import (
+    create_post, read_user_posts, update_post, delete_post, initialize_reddit
+)
 from utils import load_credentials_from_file
+import logging
 
-# Set up the Streamlit app interface
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Streamlit app interface
 st.title("Reddit Bot")
 
-# Upload credentials file
 uploaded_file = st.file_uploader("Upload your credentials.env file", type=["env"])
 
-# Load credentials and initialize Reddit client
+# Load the credentials if a file is uploaded
 if uploaded_file:
     if load_credentials_from_file(uploaded_file):
+        # Initialize Reddit client
         reddit = initialize_reddit()
         if reddit is None:
             st.stop()

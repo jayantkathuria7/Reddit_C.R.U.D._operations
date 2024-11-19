@@ -55,45 +55,39 @@ def create_post(reddit, subreddit_name, title, content):
         return f"Error: {e}"
 
 # Function to schedule a post
-import time
-from datetime import datetime
-import logging
-
-
 def schedule_post(reddit, subreddit_name, title, content, scheduled_datetime):
     """
-    Schedules the post to be made at the specified time.
-
-    Parameters:
-        reddit (praw.Reddit): The authenticated Reddit instance.
-        subreddit_name (str): The name of the subreddit to post to.
-        title (str): The title of the Reddit post.
-        content (str): The content (body) of the Reddit post.
-        scheduled_datetime (datetime): The datetime object representing when the post should be created.
+    Schedules the post to be made at the specified time in Indian Standard Time (IST).
     """
+
+    # Define the IST timezone
+    IST = pytz.timezone('Asia/Kolkata')
+
+    # Convert the scheduled time to IST
+    if scheduled_datetime.tzinfo is None:
+        scheduled_datetime = IST.localize(scheduled_datetime)
+    else:
+        scheduled_datetime = scheduled_datetime.astimezone(IST)
+
+    # Get current time in IST for comparison
+    current_time_ist = datetime.now(IST)
+
+    # Logging for debugging: Check server and local times
+    logging.info(f"Current Server Time (UTC): {datetime.now(pytz.utc)}")
+    logging.info(f"Current Time (IST): {current_time_ist}")
+    logging.info(f"Scheduled Time (IST): {scheduled_datetime}")
+
+    # If the scheduled time is in the future, wait until that time
+    while current_time_ist < scheduled_datetime:
+        time.sleep(10)  # Sleep for 10 seconds and check the time again
+        current_time_ist = datetime.now(IST)
+
+    # Now that the scheduled time has passed, create the post
     try:
-        # Wait until the scheduled time
-        current_time = datetime.now()
-
-        # If the scheduled time is in the future, wait until that time
-        while current_time < scheduled_datetime:
-            time_difference = (scheduled_datetime - current_time).total_seconds()
-
-            if time_difference > 10:
-                time.sleep(10)  # Sleep for 10 seconds if the time difference is more than 10 seconds
-            else:
-                time.sleep(time_difference)  # Sleep exactly until the scheduled time
-
-            current_time = datetime.now()
-
-        # Now that the scheduled time has passed, create the post
         post_url = create_post(reddit, subreddit_name, title, content)
         logging.info(f"Post successfully scheduled and created! [View post]({post_url})")
-        return f"Post successfully scheduled and created! [View post]({post_url})"
-
     except Exception as e:
         logging.error(f"Error creating post: {str(e)}")
-        return f"Error creating post: {str(e)}"
 
 
 # Function to read and display the latest posts from a subreddit

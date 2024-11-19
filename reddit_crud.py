@@ -2,6 +2,9 @@ import os
 import praw
 import logging
 import re
+import time
+from datetime import datetime
+from threading import Thread
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -49,6 +52,27 @@ def create_post(reddit, subreddit_name, title, content):
     except Exception as e:
         logger.error(f"An error occurred while creating the post: {e}")
         return f"Error: {e}"
+
+# Function to schedule a post
+def schedule_post(reddit, subreddit_name, title, content, scheduled_datetime):
+    """
+    Schedules the post to be made at the specified time.
+    """
+    # Wait until the scheduled time
+    current_time = datetime.now()
+
+    # If the scheduled time is in the future, wait until that time
+    while current_time < scheduled_datetime:
+        time.sleep(10)  # Sleep for 10 seconds and check the time again
+        current_time = datetime.now()
+
+    # Now that the scheduled time has passed, create the post
+    try:
+        post_url = create_post(reddit, subreddit_name, title, content)
+        logging.info(f"Post successfully scheduled and created! [View post]({post_url})")
+    except Exception as e:
+        logging.error(f"Error creating post: {str(e)}")
+
 
 # Function to read and display the latest posts from a subreddit
 def read_user_posts(reddit, limit=10):
